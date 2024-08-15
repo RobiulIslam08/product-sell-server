@@ -25,10 +25,38 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    const database = client.db("myProducst");
+    const productsCollection = client.db('electronicProducts').collection('products')
 
-    // Create a new collection
-    const collection = database.collection("products");
+  
+    // all products get from db
+    app.get('/products', async (req, res) => {
+      const page = parseInt(req.query.page) || 1; // Current page, default to 1
+      const limit = parseInt(req.query.limit) || 10; // Products per page, default to 10
+      const skip = (page - 1) * limit;
+    
+      try {
+        const cursor = productsCollection.find().skip(skip).limit(limit);
+        const products = await cursor.toArray();
+    
+        const totalProducts = await productsCollection.countDocuments();
+        const totalPages = Math.ceil(totalProducts / limit);
+    
+        console.log(`Returning products for page ${page}, limit ${limit}`);
+    
+        res.send({
+          products,
+          totalProducts,
+          totalPages,
+          currentPage: page
+        });
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        res.status(500).send('Server Error');
+      }
+    });
+    
+    
+    
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
     // Send a ping to confirm a successful connection
